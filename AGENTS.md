@@ -20,9 +20,9 @@
 ### 2.1 客户端结构（Flutter）
 Flutter 客户端采用 Provider 作为状态管理工具，按照模块化思想进行目录划分，主要结构如下：
 
-/lib/main.dart – 应用入口文件，在此初始化应用、Provider，以及定义根部件。
+/lib/main.dart – 应用入口文件，在此初始化应用、Provider，以及定义根部件, 还有supabase的创建。
 
-/lib/screens/ – 页面组件目录，例如 HomeScreen（主页表情大厅）、SearchScreen（搜索页）、UploadScreen（上传表情页）等，每个主要界面都有独立的 Dart 文件。
+/lib/screens/ – 页面组件目录，主页面一共有3个tab, 分别是:HomeScreen（主页表情大厅）、FavScreen(表情收藏页面)、PersonalScreen(个人中心页面).每个主要界面都有独立的 Dart 文件.
 
 /lib/widgets/ – 公共UI组件目录，存放应用中重复使用的组件，如表情卡片、按钮、搜索栏等自定义控件。
 
@@ -32,9 +32,11 @@ Flutter 客户端采用 Provider 作为状态管理工具，按照模块化思�
 
 /lib/services/ – 网络服务类目录，封装后端 API 请求逻辑。例如 ApiService 类中实现与服务器的 HTTP 通信（使用 Flutter 的 http 包）以及数据解析。
 
-/lib/database/ – 本地数据库目录，主要用于本地存储配置。例如使用 Hive 数据库实现本地持久化缓存，保存用户信息、收藏的表情数据以及离线缓存的表情图片路径等。
+/lib/localDatabase/ – 本地数据库目录，主要用于本地存储配置。例如使用 Drift 数据库实现本地持久化缓存，保存用户信息、收藏的表情数据以及离线缓存的表情图片路径等。
 
-上述结构确保客户端代码清晰分离：UI 层（screens/widgets）、状态层（providers）、数据层（models/database）和服务层（services）各司其职，便于团队协作开发和维护。
+/lib/supaDatabase/ - 远端数据库目录, 用于与远端的 supaBase 数据库进行通信. 存储所有用户收藏的表情包、IOS和Android都连接这个库, 所以能够实现跨端收藏、用 Supabase Auth + RLS 控制每个用户只能访问自己的数据。
+
+上述结构确保客户端代码清晰分离：UI 层（screens/widgets）、状态层（providers）、数据层（models/database）和服务层（services）各司其职，便于后续开发和维护。
 
 ### 2.2 页面路由规划
 应用采用明确的路由规划以管理页面导航。主要路由设计如下：
@@ -47,13 +49,14 @@ Flutter 客户端采用 Provider 作为状态管理工具，按照模块化思�
 
 /search – 搜索页：提供搜索输入框，支持根据关键词查询表情包，并展示搜索结果列表。
 
-/favorites – 我的收藏页：已登录用户收藏的表情列表。用户可以在此查看、管理自己收藏的表情包。
+/favorites – 收藏页：已登录用户收藏的表情列表。用户可以在此查看、管理自己收藏的表情包。
 
 /upload – 上传表情页：提供本地图片选择（通过 image_picker 调用相册或相机）并上传为表情包的界面，包含图片预览和提交功能。
 
 /profile – 用户信息页：展示用户基本资料，以及用户上传记录等信息的页面。
 
 路由规划清晰定义了应用的导航结构，便于后续在 Flutter 中使用 Navigator 或路由包进行页面跳转和管理。
+页面跳转的逻辑: 若用户未登录, 则默认页面是登陆页, 登陆页有注册链接可以跳转至注册页. 如果用户已登陆, 则默认页面是home页, home页包含search页, 可以点击右上角的放大镜按钮进入search页面. 第二个tab是收藏页, 它包含upload页面, 点击+号按钮就可以进入upload页面. 第三个tab是个人中心页, 它包含profile页面, 点击头像可以进入个人信息页面.
 
 ### 2.3 后端结构（Node.js）
 后端采用 Node.js 搭配 Express 框架，实现一套 RESTful API 服务。项目结构简洁清晰，主要模块如下：
@@ -99,7 +102,7 @@ Flutter 3.x：跨平台应用开发框架，使用 Dart 语言。Flutter 3.x 确
 
 Provider：Flutter 社区推荐的状态管理库，通过 InheritedWidget 简化状态共享。用于全局管理用户登录信息、收藏列表等状态，使组件能够响应状态变化。
 
-Hive：Flutter 上的轻量级本地数据库，以纯 Dart 实现的 NoSQL 键值存储。用于在本地持久化保存数据，如缓存表情列表、用户设置、收藏记录等，替代更重型的数据库方案以提高运行效率。
+Drift：Flutter 上的轻量级本地数据库，以纯 Dart 实现的 NoSQL 键值存储。用于在本地持久化保存数据，如缓存表情列表、用户设置、收藏记录等，替代更重型的数据库方案以提高运行效率。
 
 http：Flutter 的 HTTP 请求库。用于封装网络请求，与后端服务器进行通信，获取表情数据或提交用户操作。
 
@@ -116,7 +119,7 @@ JWT：JSON Web Token，用于用户认证与会话管理。登录成功后签发
 
 Multer：Node.js 中处理文件上传的中间件。用于解析用户上传的表情图片文件，将其保存到服务器本地（/uploads/目录），并提供文件信息给后续逻辑使用。
 
-MongoDB / Mongoose：后端数据库采用 MongoDB，配合 Mongoose 库进行对象数据模型管理。MongoDB 存储应用所需的数据，如用户信息、表情包元数据（标题、图片路径、上传者、热度等）、收藏关系等；Mongoose 简化了 Schema 定义和查询操作。
+supaBase：后端数据库采用 supaBase，存储应用所需的数据，如用户信息、表情包元数据（标题、图片路径、上传者、热度等）、收藏关系等.
 
 其他依赖：包括 CORS 中间件（启用跨域请求支持，使得 Flutter 客户端可以访问不同域名的后端服务）、dotenv（加载环境变量，如数据库连接字符串、JWT 密钥等配置），以及其他必要的工具库，保障开发和运行环境配置合理。
 
