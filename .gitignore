@@ -63,3 +63,5 @@ coverage/
 .vscode/
 .atom/
 .swiftpm/
+
+.pubspec.lock
