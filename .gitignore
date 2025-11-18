@@ -1,0 +1,65 @@
+# General artifacts
+.DS_Store
+*.log
+*.pyc
+*.swp
+*.class
+*.tmproj
+.history
+/migrate_working_dir/
+
+# Build outputs
+/build/
+**/build/
+**/doc/api/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+coverage/
+
+# Android
+/android/local.properties
+/android/key.properties
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# iOS
+/ios/Flutter/Flutter.podspec
+/ios/Flutter/.last_build_id
+/ios/.symlinks/
+/ios/Pods/
+/ios/build/
+/ios/Runner.xcodeproj/project.xcworkspace/
+/ios/Runner.xcworkspace/
+
+# macOS
+/macos/Pods/
+/macos/Flutter/ephemeral/
+/macos/build/
+
+# Linux
+/linux/flutter/ephemeral/
+/linux/build/
+
+# Windows
+/windows/flutter/ephemeral/
+/windows/build/
+
+# Web/Other platform caches
+/web/.dart_tool/
+/ohos/build/
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.atom/
+.swiftpm/
