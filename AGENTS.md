@@ -1,21 +1,124 @@
-# Repository Guidelines
+# 一、项目概述
 
-## Project Structure & Module Organization
-`lib/main.dart` boots the app and wires the tab scaffold, while feature code lives in `lib/pages/` (`chat/`, `contacts/`, `discover/`, `profile/`) with shared UI in `lib/widgets/`. Data models remain in `lib/models/`, and platform shells stay under `android/`, `ios/`, `macos/`, `linux/`, `windows/`, `web/`, and `ohos/`. Keep preview assets beside the widgets that use them, and mirror page-level directories inside `test/` so every view or widget has a peer test suite. Manage dependencies and fonts through `pubspec.yaml`, and adjust linting via `analysis_options.yaml`.
+本项目旨在构建一款基于 Flutter 的跨平台表情包管理应用，支持在 Android 和 iOS 平台运行。应用主要功能包括：
 
-## Build, Test, and Development Commands
-- `flutter pub get` — sync packages declared in `pubspec.yaml`.
-- `flutter run -d <device>` — run the full app on a connected simulator (e.g., `flutter run -d chrome` for web).
-- `flutter analyze` — enforce the Flutter lint set before opening a pull request.
-- `flutter test` — execute all Dart and widget tests under `test/`.
-- `flutter format lib/**/*.dart test/**/*.dart` — ensure standardized formatting; include generated files only when necessary.
-- `flutter precache --macos` — run once when targeting macOS to fetch xcframework artifacts.
+表情大厅（热门表情排行榜）：提供一个表情包展示大厅，按热度排行展示当前流行的表情图片，方便用户浏览和下载。
 
-## Coding Style & Naming Conventions
-The project inherits `package:flutter_lints/flutter.yaml`, with const-related rules relaxed to keep layouts readable; use `const` where obvious but do not fight the exemption when stateful data is required. Follow Dart defaults: two-space indentation, `snake_case.dart` files, `UpperCamelCase` classes, `lowerCamelCase` members, and prefix private helpers with `_`. Favor composition-friendly widgets, extract shared UI into `lib/widgets/`, and use `debugPrint` for noisy logs because `avoid_print` is disabled.
+表情搜索：支持根据关键词搜索表情包，快速找到所需的表情图片。
 
-## Testing Guidelines
-Widget and unit specs belong in `test/`, mirroring the `lib/` tree (`test/pages/chat/chat_list_page_test.dart`, etc.). Group tests by widget or service, write descriptive `testWidgets` titles, and prefer pumping minimal scaffolds that reflect actual navigation stacks. Aim for ≥80% line coverage on touched files, and run `flutter test --coverage` when preparing a release branch. When adding new screens, include at least one golden or interaction test covering primary states.
+用户注册与登录：提供用户账户系统，新用户可以注册账号，已注册用户可登录账户。登录后将通过 JWT（JSON Web Token）维持会话。
 
-## Commit & Pull Request Guidelines
-The distributed snapshot lacks Git history, so adopt Conventional Commit prefixes (`feat:`, `fix:`, `chore:`) to keep logs filterable. Keep messages in the imperative, wrap body text at 72 characters, and mention ticket IDs when applicable. Each PR should link the relevant issue, summarize functional changes, list entry points touched (e.g., `lib/pages/discover/discover_page.dart`), attach screenshots for UI tweaks, and confirm that `flutter analyze`, `flutter test`, and device smoke tests have been executed locally.
+用户收藏表情：登录用户可以收藏喜欢的表情包，收藏列表会同步保存，方便日后查看。
+
+用户上传本地表情：支持用户上传本地图片文件作为新的表情包，丰富表情资源库。上传过程会调用后端接口并将图片保存在服务器。
+
+本地路径存储图片：所有表情图片文件统一采用本地存储路径进行管理。在后端，上传的图片保存在服务器的本地文件夹中；在客户端，应用通过本地缓存来存储和读取图片，以提高加载速度。
+
+## 二、项目结构
+本项目分为 Flutter 客户端和 Node.js 后端两部分。前后端通过 RESTful API 进行通信。下面分别介绍客户端和后端的结构设计：
+
+### 2.1 客户端结构（Flutter）
+Flutter 客户端采用 Provider 作为状态管理工具，按照模块化思想进行目录划分，主要结构如下：
+
+/lib/main.dart – 应用入口文件，在此初始化应用、Provider，以及定义根部件。
+
+/lib/screens/ – 页面组件目录，例如 HomeScreen（主页表情大厅）、SearchScreen（搜索页）、UploadScreen（上传表情页）等，每个主要界面都有独立的 Dart 文件。
+
+/lib/widgets/ – 公共UI组件目录，存放应用中重复使用的组件，如表情卡片、按钮、搜索栏等自定义控件。
+
+/lib/providers/ – 状态管理目录，定义各类 Provider 类，如用户状态 (UserProvider)、收藏状态 (FavoriteProvider) 等，在全局范围提供数据和操作方法。
+
+/lib/models/ – 数据模型目录，定义应用中的核心模型类，如用户模型、表情包模型等，以结构化方式管理数据。
+
+/lib/services/ – 网络服务类目录，封装后端 API 请求逻辑。例如 ApiService 类中实现与服务器的 HTTP 通信（使用 Flutter 的 http 包）以及数据解析。
+
+/lib/database/ – 本地数据库目录，主要用于本地存储配置。例如使用 Hive 数据库实现本地持久化缓存，保存用户信息、收藏的表情数据以及离线缓存的表情图片路径等。
+
+上述结构确保客户端代码清晰分离：UI 层（screens/widgets）、状态层（providers）、数据层（models/database）和服务层（services）各司其职，便于团队协作开发和维护。
+
+### 2.2 页面路由规划
+应用采用明确的路由规划以管理页面导航。主要路由设计如下：
+
+/login – 登录页：用户输入账号和密码进行登录的界面。
+
+/register – 注册页：新用户创建账号的界面。
+
+/home – 主页（表情大厅）：默认首页，展示热门表情排行榜及推荐内容。登录后用户在此浏览和进入其他功能。
+
+/search – 搜索页：提供搜索输入框，支持根据关键词查询表情包，并展示搜索结果列表。
+
+/favorites – 我的收藏页：已登录用户收藏的表情列表。用户可以在此查看、管理自己收藏的表情包。
+
+/upload – 上传表情页：提供本地图片选择（通过 image_picker 调用相册或相机）并上传为表情包的界面，包含图片预览和提交功能。
+
+/profile – 用户信息页：展示用户基本资料，以及用户上传记录等信息的页面。
+
+路由规划清晰定义了应用的导航结构，便于后续在 Flutter 中使用 Navigator 或路由包进行页面跳转和管理。
+
+### 2.3 后端结构（Node.js）
+后端采用 Node.js 搭配 Express 框架，实现一套 RESTful API 服务。项目结构简洁清晰，主要模块如下：
+
+/routes/ – 路由模块目录：根据功能划分多个路由文件，例如 auth.js（认证相关路由）、emoji.js（表情包相关路由）、user.js（用户相关路由）等。在这些文件中定义各API端点路径，并将请求转发给对应的控制器处理。
+
+/controllers/ – 控制器目录：封装具体业务逻辑处理，每个控制器函数对应一个路由请求。例如认证控制器处理注册/登录逻辑，表情控制器处理表情的查询、上传等逻辑。控制器从请求中提取数据，与模型交互后返回响应。
+
+/models/ – 数据模型目录：定义 MongoDB 的数据模型(Mongoose 模式)。例如用户模型、表情包模型等，用于在数据库中创建和管理相应集合(collection)和文档(document)。
+
+/middleware/ – 中间件目录：放置 Express 中间件，如 JWT 鉴权中间件等。在受保护的路由中使用 JWT 中间件验证请求头中的令牌有效性，保证用户身份安全。
+
+/uploads/ – 文件存储目录：用于保存用户上传的表情图片文件。服务器接受上传请求后，会利用 Multer 中间件将图片存储到此目录，并将文件路径/名称保存到数据库的表情数据中。
+
+server.js – 应用入口文件：设置 Express 应用，连接数据库，应用中间件（如 CORS、JSON 解析、dotenv 配置等），挂载路由，并启动服务器监听指定端口。
+
+整个后端结构遵循 MVC（路由-控制器-模型）的清晰分层，使代码逻辑清楚，方便后期的功能扩展和维护。
+
+### 2.4 API 接口说明
+前后端通过定义良好的 RESTful API 进行通信。以下是部分主要接口示例说明：
+
+POST /api/auth/register – 用户注册接口：接受用户名、密码等信息，创建新用户账户。成功注册后返回操作结果（例如成功消息或JWT令牌）。
+
+POST /api/auth/login – 用户登录接口：接受用户名和密码，校验凭证。验证通过后生成 JWT 返回给客户端用于后续认证（通常在响应中返回 token）。
+
+GET /api/emojis/hot – 获取热门表情列表：无需认证，返回当前热门的表情包列表数据（按下载量或收藏量排行）。
+
+GET /api/emojis/search?query={关键词} – 搜索表情接口：根据查询参数中的关键词，在表情库中搜索匹配的表情包，并返回结果列表。
+
+POST /api/emojis/upload – 上传表情接口：接收表情图片文件（通过表单数据上传）以及相关描述信息。需要用户登录（请求需附带有效JWT）。服务端保存图片到本地并在数据库中新建表情记录，返回上传结果（如成功与否以及新表情ID）。
+
+POST /api/emojis/favorite/:id – 收藏表情接口：需要认证（JWT）。将指定ID的表情包添加到当前用户的收藏列表。服务器在用户数据中记录收藏关系，返回操作状态。
+
+GET /api/emojis/favorites – 获取我的收藏列表：需要认证（JWT）。返回当前登录用户收藏的所有表情包详情列表，方便客户端展示“我的收藏”页。
+
+上述接口采用 JSON 进行数据交互，客户端需要在请求头中加入 Authorization: Bearer <JWT> 来访问受保护的资源接口（如收藏相关）。更多接口细节（如请求参数和响应格式）可在具体实现中进一步定义和补充。
+
+## 三、技术栈与依赖
+项目开发中使用了符合需求的技术栈和第三方库，分别如下：
+
+### 3.1 客户端技术栈
+Flutter 3.x：跨平台应用开发框架，使用 Dart 语言。Flutter 3.x 确保在 Android 和 iOS 平台上的稳定支持和高性能渲染。
+
+Provider：Flutter 社区推荐的状态管理库，通过 InheritedWidget 简化状态共享。用于全局管理用户登录信息、收藏列表等状态，使组件能够响应状态变化。
+
+Hive：Flutter 上的轻量级本地数据库，以纯 Dart 实现的 NoSQL 键值存储。用于在本地持久化保存数据，如缓存表情列表、用户设置、收藏记录等，替代更重型的数据库方案以提高运行效率。
+
+http：Flutter 的 HTTP 请求库。用于封装网络请求，与后端服务器进行通信，获取表情数据或提交用户操作。
+
+path_provider：Flutter 插件，用于获取不同平台上的本地存储路径（如文档目录）。在保存下载的图片或 Hive 数据库文件时需要获取设备存储位置。
+
+image_picker：Flutter 插件，用于访问设备相册和相机以选择图片。用户在上传表情时，通过该插件选取本地图像文件然后上传。
+
+cached_network_image：用于加载网络图片并进行本地缓存的 Flutter 插件。应用中大量表情图片通过网络获取，此库可以缓存图片，提升二次加载速度并减少流量消耗。
+
+### 3.2 后端技术栈
+Node.js + Express：后端运行时和Web开发框架。Node.js 提供高性能非阻塞 I/O，Express 框架简化了路由定义和中间件管理，用于快速构建 RESTful API 服务。
+
+JWT：JSON Web Token，用于用户认证与会话管理。登录成功后签发 JWT，客户端后续请求在头部携带该令牌，后端通过验证 JWT 保证接口访问安全。
+
+Multer：Node.js 中处理文件上传的中间件。用于解析用户上传的表情图片文件，将其保存到服务器本地（/uploads/目录），并提供文件信息给后续逻辑使用。
+
+MongoDB / Mongoose：后端数据库采用 MongoDB，配合 Mongoose 库进行对象数据模型管理。MongoDB 存储应用所需的数据，如用户信息、表情包元数据（标题、图片路径、上传者、热度等）、收藏关系等；Mongoose 简化了 Schema 定义和查询操作。
+
+其他依赖：包括 CORS 中间件（启用跨域请求支持，使得 Flutter 客户端可以访问不同域名的后端服务）、dotenv（加载环境变量，如数据库连接字符串、JWT 密钥等配置），以及其他必要的工具库，保障开发和运行环境配置合理。
+
+## 四、代码风格指南
+项目代码尽量不要把常量写死在代码中, 例如主题颜色之类的, 需要额外创建一个常量文件, 然后引入常量文件, 这样可以方便修改, 并且可以避免代码重复.
